@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/apiimperfect/save-api/cmd/api/router"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,16 +22,7 @@ func NewServer() (*Server, error) {
 }
 
 func (server *Server) SetupRouter() {
-	router := server.router
-
-	// Add basic routes
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
-	})
-
-	server.router = router
+	router.SetupRouter(server.router)
 }
 
 func (server *Server) Start(address string) error {
