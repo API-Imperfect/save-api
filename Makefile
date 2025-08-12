@@ -1,6 +1,9 @@
+include dev.env
+export
+
 GOLANG := golang:1.24.2
 
-.PHONY: tidy migrate-up migrate-down migrate-create migrate-force migrate-reset confirm
+.PHONY: tidy migrate-up migrate-down create-migration migrate-force migrate-reset confirm docker-build docker-down docker-up build/api
 
 # Confirmation prompt
 # Essentially, what happens here is that we ask the user Are you sure? [y/N] and then read the response. We
@@ -13,13 +16,11 @@ confirm:
 # Create a new migration file
 # Usage:
 #   make migrate-create name=add_user_locations_table
-migrate-create: confirm
+create-migration: confirm
 	@echo "Creating migration files for ${name}..."
-	migrate create -ext sql -dir ./internal/db/migrations -seq ${name}
+	migrate create -ext sql -dir ./internal/data/migrations -seq ${name}
 
 # Run migrations up
-# set -a and set +a are used to source the dev.env file and set the DB_SOURCE variable in the environment.
-# This is necessary because the migrate command does not support passing environment variables directly.
 # Usage: 
 #   make migrate-up              - runs all pending migrations
 #   make migrate-up version=1    - runs migrations up to specific version
@@ -27,10 +28,10 @@ migrate-up: confirm
 	@echo "Running migrations up"
 	@if [ -n "$(version)" ]; then \
 		echo "Applying migrations up to version: $(version)"; \
-		set -a && . ./dev.env && set +a && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" goto $(version); \
+		migrate -path ./internal/data/migrations -database "${DB_SOURCE}" goto $(version); \
 	else \
 		echo "Applying all pending migrations"; \
-		set -a && . ./dev.env && set +a && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" up; \
+		migrate -path ./internal/data/migrations -database "${DB_SOURCE}" up; \
 	fi
 
 # Run migrations down
@@ -41,27 +42,51 @@ migrate-down: confirm
 	@echo "Running migrations down"
 	@if [ -n "$(version)" ]; then \
 		echo "Rolling back to version: $(version)"; \
-		set -a && . ./dev.env && set +a && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" goto $(version); \
+		migrate -path ./internal/data/migrations -database "${DB_SOURCE}" goto $(version); \
 	else \
 		echo "Rolling back all migrations"; \
-		set -a && . ./dev.env && set +a && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" down; \
+		migrate -path ./internal/data/migrations -database "${DB_SOURCE}" down; \
 	fi
 
 # Force migration version (useful for fixing dirty database)
 # Usage: make migrate-force version=1
 migrate-force: confirm
 	@echo "Forcing migration version ${version}"
-	@set -a && . ./dev.env && set +a && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" force ${version}
+	@migrate -path ./internal/data/migrations -database "${DB_SOURCE}" force ${version}
 
 # Reset migrations (drop all tables and re-run from beginning)
 migrate-reset: confirm
 	@echo "Resetting all migrations"
-	@set -a && . ./dev.env && set +a && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" drop && migrate -path ./internal/db/migrations -database "$$DB_SOURCE" up
+	@migrate -path ./internal/data/migrations -database "${DB_SOURCE}" drop && migrate -path ./internal/data/migrations -database "${DB_SOURCE}" up
+
+generate: gen-users
+
+gen-users:
+	@echo "Generating SQLC code for users"
+	sqlc generate --file ./internal/data/users/sqlc.yml
+
+docker-build:
+	@echo "Building the docker image"
+	docker compose -f docker/local/local.yml up --build -d
+
+docker-down:
+	@echo "Stopping and removing the docker container"
+	docker compose -f docker/local/local.yml down
+
+docker-up:
+	@echo "Starting the docker container"
+	docker compose -f docker/local/local.yml up -d
+
 
 tidy:
 	@echo 'Tidying module dependencies...'
 	go mod tidy
-	@echo 'Verifying and vendoring module dependencies...'
+	@echo 'Verifying module dependencies...'
 	go mod verify
+	@echo 'Creating vendor directory with dependencies...'
 	go mod vendor
 
+build/api:
+	@echo 'Building cmd/api...'
+	go build -ldflags='-s' -o=./bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o=./bin/linux_amd64/api ./cmd/api
