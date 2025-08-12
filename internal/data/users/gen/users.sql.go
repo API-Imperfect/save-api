@@ -45,7 +45,7 @@ INSERT INTO users (
     last_login
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+) RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type CreateUserParams struct {
@@ -76,6 +76,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -160,7 +162,7 @@ func (q *Queries) GetRecentUserPrompts(ctx context.Context, arg GetRecentUserPro
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users WHERE id = $1
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -171,6 +173,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -183,7 +187,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 }
 
 const getUserByPhoneNumber = `-- name: GetUserByPhoneNumber :one
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users WHERE phone_number = $1
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users WHERE phone_number = $1
 `
 
 func (q *Queries) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (User, error) {
@@ -194,6 +198,8 @@ func (q *Queries) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) 
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -206,7 +212,7 @@ func (q *Queries) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) 
 }
 
 const getUserByPublicID = `-- name: GetUserByPublicID :one
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users WHERE public_id = $1
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users WHERE public_id = $1
 `
 
 func (q *Queries) GetUserByPublicID(ctx context.Context, publicID pgtype.UUID) (User, error) {
@@ -217,6 +223,8 @@ func (q *Queries) GetUserByPublicID(ctx context.Context, publicID pgtype.UUID) (
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -297,7 +305,7 @@ func (q *Queries) GetUserPromptsByAction(ctx context.Context, arg GetUserPrompts
 
 const getUserWithPrompts = `-- name: GetUserWithPrompts :many
 SELECT 
-    u.id, u.public_id, u.phone_number, u.pin, u.pin_changed_at, u.status, u.last_prompt_action, u.phone_verified, u.telco, u.created_at, u.last_login,
+    u.id, u.public_id, u.phone_number, u.pin, u.first_name, u.last_name, u.pin_changed_at, u.status, u.last_prompt_action, u.phone_verified, u.telco, u.created_at, u.last_login,
     up.id as prompt_id,
     up.action as prompt_action,
     up.performed_at as prompt_performed_at
@@ -312,6 +320,8 @@ type GetUserWithPromptsRow struct {
 	PublicID          pgtype.UUID        `json:"public_id"`
 	PhoneNumber       string             `json:"phone_number"`
 	Pin               string             `json:"pin"`
+	FirstName         string             `json:"first_name"`
+	LastName          string             `json:"last_name"`
 	PinChangedAt      pgtype.Timestamp   `json:"pin_changed_at"`
 	Status            NullUserStatus     `json:"status"`
 	LastPromptAction  NullUserPromptType `json:"last_prompt_action"`
@@ -338,6 +348,8 @@ func (q *Queries) GetUserWithPrompts(ctx context.Context, id int64) ([]GetUserWi
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -360,7 +372,7 @@ func (q *Queries) GetUserWithPrompts(ctx context.Context, id int64) ([]GetUserWi
 }
 
 const getUsersByLastLoginRange = `-- name: GetUsersByLastLoginRange :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE last_login BETWEEN $1 AND $2 
 ORDER BY last_login DESC
 `
@@ -384,6 +396,8 @@ func (q *Queries) GetUsersByLastLoginRange(ctx context.Context, arg GetUsersByLa
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -403,7 +417,7 @@ func (q *Queries) GetUsersByLastLoginRange(ctx context.Context, arg GetUsersByLa
 }
 
 const getUsersByPINChangedAfter = `-- name: GetUsersByPINChangedAfter :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE pin_changed_at > $1 
 ORDER BY pin_changed_at DESC
 `
@@ -422,6 +436,8 @@ func (q *Queries) GetUsersByPINChangedAfter(ctx context.Context, pinChangedAt pg
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -441,7 +457,7 @@ func (q *Queries) GetUsersByPINChangedAfter(ctx context.Context, pinChangedAt pg
 }
 
 const getUsersByPhoneVerified = `-- name: GetUsersByPhoneVerified :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE phone_verified = $1 
 ORDER BY created_at DESC
 `
@@ -460,6 +476,8 @@ func (q *Queries) GetUsersByPhoneVerified(ctx context.Context, phoneVerified pgt
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -479,7 +497,7 @@ func (q *Queries) GetUsersByPhoneVerified(ctx context.Context, phoneVerified pgt
 }
 
 const getUsersByTelco = `-- name: GetUsersByTelco :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE telco = $1 
 ORDER BY created_at DESC
 `
@@ -498,6 +516,8 @@ func (q *Queries) GetUsersByTelco(ctx context.Context, telco string) ([]User, er
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -517,7 +537,7 @@ func (q *Queries) GetUsersByTelco(ctx context.Context, telco string) ([]User, er
 }
 
 const getUsersCreatedBetween = `-- name: GetUsersCreatedBetween :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE created_at BETWEEN $1 AND $2 
 ORDER BY created_at DESC
 `
@@ -541,6 +561,8 @@ func (q *Queries) GetUsersCreatedBetween(ctx context.Context, arg GetUsersCreate
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -560,7 +582,7 @@ func (q *Queries) GetUsersCreatedBetween(ctx context.Context, arg GetUsersCreate
 }
 
 const listActiveUsers = `-- name: ListActiveUsers :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE status = 'active' 
 ORDER BY created_at DESC
 `
@@ -579,6 +601,8 @@ func (q *Queries) ListActiveUsers(ctx context.Context) ([]User, error) {
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -598,7 +622,7 @@ func (q *Queries) ListActiveUsers(ctx context.Context) ([]User, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 ORDER BY created_at DESC
 `
 
@@ -616,6 +640,8 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -635,7 +661,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 }
 
 const listUsersByStatus = `-- name: ListUsersByStatus :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE status = $1 
 ORDER BY created_at DESC
 `
@@ -654,6 +680,8 @@ func (q *Queries) ListUsersByStatus(ctx context.Context, status NullUserStatus) 
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -673,7 +701,7 @@ func (q *Queries) ListUsersByStatus(ctx context.Context, status NullUserStatus) 
 }
 
 const searchUsersByPhoneNumber = `-- name: SearchUsersByPhoneNumber :many
-SELECT id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
+SELECT id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login FROM users 
 WHERE phone_number LIKE $1 
 ORDER BY created_at DESC
 `
@@ -692,6 +720,8 @@ func (q *Queries) SearchUsersByPhoneNumber(ctx context.Context, phoneNumber stri
 			&i.PublicID,
 			&i.PhoneNumber,
 			&i.Pin,
+			&i.FirstName,
+			&i.LastName,
 			&i.PinChangedAt,
 			&i.Status,
 			&i.LastPromptAction,
@@ -714,7 +744,7 @@ const updateLastLogin = `-- name: UpdateLastLogin :one
 UPDATE users 
 SET last_login = $2
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdateLastLoginParams struct {
@@ -730,6 +760,8 @@ func (q *Queries) UpdateLastLogin(ctx context.Context, arg UpdateLastLoginParams
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -745,7 +777,7 @@ const updateLastPromptAction = `-- name: UpdateLastPromptAction :one
 UPDATE users 
 SET last_prompt_action = $2
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdateLastPromptActionParams struct {
@@ -761,6 +793,8 @@ func (q *Queries) UpdateLastPromptAction(ctx context.Context, arg UpdateLastProm
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -776,7 +810,7 @@ const updatePhoneVerification = `-- name: UpdatePhoneVerification :one
 UPDATE users 
 SET phone_verified = $2
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdatePhoneVerificationParams struct {
@@ -792,6 +826,8 @@ func (q *Queries) UpdatePhoneVerification(ctx context.Context, arg UpdatePhoneVe
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -815,7 +851,7 @@ SET
     telco = COALESCE($8, telco),
     last_login = COALESCE($9, last_login)
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdateUserComprehensiveParams struct {
@@ -848,6 +884,8 @@ func (q *Queries) UpdateUserComprehensive(ctx context.Context, arg UpdateUserCom
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -864,7 +902,7 @@ UPDATE users
 SET pin = $2, 
     pin_changed_at = $3
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdateUserPINParams struct {
@@ -881,6 +919,8 @@ func (q *Queries) UpdateUserPIN(ctx context.Context, arg UpdateUserPINParams) (U
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -897,7 +937,7 @@ UPDATE users
 SET status = $2, 
     last_login = COALESCE($3, last_login)
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdateUserStatusParams struct {
@@ -914,6 +954,8 @@ func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusPara
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,
@@ -929,7 +971,7 @@ const updateUserTelco = `-- name: UpdateUserTelco :one
 UPDATE users 
 SET telco = $2
 WHERE id = $1 
-RETURNING id, public_id, phone_number, pin, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
+RETURNING id, public_id, phone_number, pin, first_name, last_name, pin_changed_at, status, last_prompt_action, phone_verified, telco, created_at, last_login
 `
 
 type UpdateUserTelcoParams struct {
@@ -945,6 +987,8 @@ func (q *Queries) UpdateUserTelco(ctx context.Context, arg UpdateUserTelcoParams
 		&i.PublicID,
 		&i.PhoneNumber,
 		&i.Pin,
+		&i.FirstName,
+		&i.LastName,
 		&i.PinChangedAt,
 		&i.Status,
 		&i.LastPromptAction,

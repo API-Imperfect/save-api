@@ -103,6 +103,8 @@ type User struct {
 	PublicID     pgtype.UUID      `json:"public_id"`
 	PhoneNumber  string           `json:"phone_number"`
 	Pin          string           `json:"pin"`
+	FirstName    string           `json:"first_name"`
+	LastName     string           `json:"last_name"`
 	PinChangedAt pgtype.Timestamp `json:"pin_changed_at"`
 	Status       NullUserStatus   `json:"status"`
 	// most recent user prompt

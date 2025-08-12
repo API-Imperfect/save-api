@@ -73,6 +73,10 @@ docker-down:
 	@echo "Stopping and removing the docker container"
 	docker compose -f docker/local/local.yml down
 
+docker-down-v:
+	@echo "Stopping and removing all docker containers"
+	docker compose -f docker/local/local.yml down -v
+
 docker-up:
 	@echo "Starting the docker container"
 	docker compose -f docker/local/local.yml up -d

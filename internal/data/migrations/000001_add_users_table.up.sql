@@ -11,11 +11,14 @@ CREATE TYPE "user_prompt_type" AS ENUM (
   'reset_pin'
 );
 
+
 CREATE TABLE "users" (
   "id" bigserial PRIMARY KEY,
-  "public_id" uuid NOT NULL DEFAULT (gen_random_uuid()),
-  "phone_number" varchar UNIQUE NOT NULL,
-  "pin" varchar NOT NULL,
+  "public_id" uuid NOT NULL,
+  "phone_number" varchar(12) UNIQUE NOT NULL,
+  "pin" varchar(5) NOT NULL,
+  "first_name" varchar(255) NOT NULL,
+  "last_name" varchar(255) NOT NULL,
   "pin_changed_at" timestamp NOT NULL DEFAULT '0001-01-01',
   "status" user_status DEFAULT 'inactive',
   "last_prompt_action" user_prompt_type,
