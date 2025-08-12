@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN confirm_pin VARCHAR(5) NOT NULL;

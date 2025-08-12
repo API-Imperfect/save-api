@@ -2,6 +2,9 @@
 INSERT INTO users (
     phone_number,
     pin,
+    confirm_pin,
+    first_name,
+    last_name,
     pin_changed_at,
     status,
     last_prompt_action,
@@ -9,7 +12,7 @@ INSERT INTO users (
     telco,
     last_login
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
 
 -- name: GetUserByID :one
@@ -31,7 +34,15 @@ RETURNING *;
 -- name: UpdateUserPIN :one
 UPDATE users 
 SET pin = $2, 
-    pin_changed_at = $3
+    confirm_pin = $3,
+    pin_changed_at = $4
+WHERE id = $1 
+RETURNING *;
+
+-- name: UpdateUserNames :one
+UPDATE users 
+SET first_name = $2,
+    last_name = $3
 WHERE id = $1 
 RETURNING *;
 
@@ -97,6 +108,11 @@ SELECT * FROM users
 WHERE phone_number LIKE $1 
 ORDER BY created_at DESC;
 
+-- name: SearchUsersByName :many
+SELECT * FROM users 
+WHERE first_name ILIKE $1 OR last_name ILIKE $1 
+ORDER BY created_at DESC;
+
 -- name: GetUsersCreatedBetween :many
 SELECT * FROM users 
 WHERE created_at BETWEEN $1 AND $2 
@@ -117,12 +133,15 @@ UPDATE users
 SET 
     phone_number = COALESCE($2, phone_number),
     pin = COALESCE($3, pin),
-    pin_changed_at = COALESCE($4, pin_changed_at),
-    status = COALESCE($5, status),
-    last_prompt_action = COALESCE($6, last_prompt_action),
-    phone_verified = COALESCE($7, phone_verified),
-    telco = COALESCE($8, telco),
-    last_login = COALESCE($9, last_login)
+    confirm_pin = COALESCE($4, confirm_pin),
+    first_name = COALESCE($5, first_name),
+    last_name = COALESCE($6, last_name),
+    pin_changed_at = COALESCE($7, pin_changed_at),
+    status = COALESCE($8, status),
+    last_prompt_action = COALESCE($9, last_prompt_action),
+    phone_verified = COALESCE($10, phone_verified),
+    telco = COALESCE($11, telco),
+    last_login = COALESCE($12, last_login)
 WHERE id = $1 
 RETURNING *;
 
@@ -160,3 +179,12 @@ SELECT * FROM user_prompts
 WHERE user_id = $1 
 ORDER BY performed_at DESC 
 LIMIT $2;
+
+-- name: ValidateUserPIN :one
+SELECT id, pin, confirm_pin FROM users 
+WHERE phone_number = $1;
+
+-- name: GetUserByFullName :many
+SELECT * FROM users 
+WHERE first_name = $1 AND last_name = $2 
+ORDER BY created_at DESC;

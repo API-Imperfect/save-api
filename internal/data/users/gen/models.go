@@ -113,6 +113,7 @@ type User struct {
 	Telco            string             `json:"telco"`
 	CreatedAt        pgtype.Timestamp   `json:"created_at"`
 	LastLogin        pgtype.Timestamp   `json:"last_login"`
+	ConfirmPin       string             `json:"confirm_pin"`
 }
 
 // Tracks all prompt-related user actions historically
